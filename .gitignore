@@ -1,3 +1,4 @@
 .env
 *.local
 node_modules/
+tpl_audit.json
