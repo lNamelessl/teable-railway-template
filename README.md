@@ -1,6 +1,6 @@
 # Teable for Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/teable)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/teable-1)
 
 Self-host [Teable](https://github.com/teableio/teable) — the open-source, spreadsheet-like
 Airtable alternative (21.8k+ ⭐) — on Railway with one click. No hand-copying credentials,
@@ -16,8 +16,8 @@ timeout so deploys don't fail while the database schema is being created.
 | Service  | Image                                        | Volume                     | Purpose                                  |
 | -------- | -------------------------------------------- | -------------------------- | ---------------------------------------- |
 | Teable   | `ghcr.io/teableio/teable` (pinned release)   | `/app/.assets`             | Teable app (web + API + automations)     |
-| Postgres | `postgres:15.4`                              | `/var/lib/postgresql/data` | Primary datastore (meta + data schemas)  |
-| Redis    | `redis:7.2.4`                                | `/data`                    | Cache / session store (AOF persistence)  |
+| Postgres | `postgres:15.4` (from [`postgres/`](./postgres)) | `/var/lib/postgresql/data` | Primary datastore (meta + data schemas)  |
+| Redis    | `redis:7.2.4` (from [`redis/`](./redis))     | `/data`                    | Cache / session store (AOF persistence)  |
 
 - **Zero deploy-form prompts** — every variable is prewired with Railway references
   (`${{Postgres.POSTGRES_PASSWORD}}`, `${{secret(...)}}`, …). Nothing to copy-paste.
@@ -133,13 +133,17 @@ redeploys with existing volumes, and restarts — verified with repeated fresh d
 ## Repo layout
 
 ```
-Dockerfile        # pinned FROM ghcr.io/teableio/teable:<release> — the only upgrade surface
-railway.json      # healthcheck (/health, 300s), restart policy, Dockerfile builder
+Dockerfile          # pinned FROM ghcr.io/teableio/teable:<release> — the upgrade surface
+postgres/Dockerfile # postgres:15.4 + PGDATA baked to a volume subdirectory (Railway
+                    #   volumes contain a lost+found entry initdb refuses as a datadir)
+redis/Dockerfile    # redis:7.2.4 with a shell-form CMD so --requirepass expands
+                    #   $REDIS_PASSWORD from the environment at container start
+railway.json        # healthcheck (/health, 300s), restart policy, Dockerfile builder
 ```
 
-Postgres and Redis are provisioned as Railway image services (`postgres:15.4`,
-`redis:7.2.4`) with volumes; the Teable service is built from this repo so the pin is
-visible and updatable in code.
+All three services are built from this repo so every pin is visible and updatable in
+code, and the published template stays repo-sourced (updatable, ejectable — never a
+faceless image).
 
 ## License
 
